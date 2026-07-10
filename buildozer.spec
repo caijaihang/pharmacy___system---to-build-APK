@@ -34,6 +34,10 @@ android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_
 # 构建后端
 p4a.branch = stable
 
+# 强制构建 APK（不构建 AAB）
+android.arch = arm64-v8a
+android.binary_apk = True
+
 # 日志
 log_level = 2
 warn_on_root = 1
