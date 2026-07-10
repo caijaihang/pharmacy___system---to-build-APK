@@ -3,18 +3,12 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'app.py'
-      - 'main.py'
-      - 'static/**'
-      - 'buildozer.spec'
-      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
     - name: Checkout code
@@ -32,36 +26,93 @@ jobs:
           build-essential git zip unzip \
           openjdk-17-jdk-headless \
           autoconf libtool pkg-config zlib1g-dev \
-          libncurses5-dev libncursesw5-dev libtinfo5 cmake \
+          libncurses-dev cmake \
           libffi-dev libssl-dev \
-          ninja-build
+          ninja-build ccache
+
+    - name: Create libtinfo5 symlink (not available on Ubuntu 24.04)
+      run: |
+        sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+        sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
+
+    - name: Cache Buildozer
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.buildozer
+          ~/.gradle
+        key: buildozer-${{ runner.os }}-v1
+        restore-keys: |
+          buildozer-${{ runner.os }}-
 
     - name: Install Buildozer
       run: |
         pip install --upgrade pip
-        pip install buildozer cython virtualenv
+        pip install buildozer cython==0.29.36 virtualenv
 
     - name: Build APK
       run: |
         cd $GITHUB_WORKSPACE
-        buildozer android debug
+        buildozer android debug 2>&1 | tail -100
+        echo "Build exit code: $?"
+
+    - name: List build output
+      if: always()
+      run: |
+        echo "=== bin/ contents ==="
+        ls -la bin/ 2>/dev/null || echo "bin/ does not exist"
+        find bin -name "*.apk" 2>/dev/null || echo "No APK found"
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
+      if: success()
       with:
         name: pharmacy-android-apk
         path: bin/*.apk
-        retention-days: 7
+        retention-days: 30
 
     - name: Get APK info
+      if: success()
+      id: apk_info
       run: |
         APK_PATH=$(find bin -name "*.apk" | head -1)
         if [ -n "$APK_PATH" ]; then
+          APK_NAME=$(basename "$APK_PATH")
           APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
-          echo "APK 文件: $APK_PATH"
-          echo "APK 大小: $APK_SIZE"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
+          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+          echo "APK found: $APK_NAME ($APK_SIZE)"
         else
-          echo "未找到 APK 文件"
-          find bin -type f 2>/dev/null || echo "bin 目录不存在"
-          ls -la bin/ 2>/dev/null || echo "bin 目录不存在"
+          echo "No APK found"
         fi
+
+    - name: Create GitHub Release and Upload APK
+      if: success() && steps.apk_info.outputs.apk_path != ''
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: 药房进货比较系统 APK v1.0.${{ github.run_number }}
+        body: |
+          ## 药房进货比较系统 Android APK
+
+          ### 安装说明
+          1. 下载下方 `.apk` 文件到手机
+          2. 在手机设置中允许"安装未知来源应用"
+          3. 点击安装即可使用
+
+          ### 功能
+          - 四大供应商药品比价搜索
+          - 购物车管理
+          - Excel批量查询导出
+          - 原价/折后价显示
+          - 购物车现存数量实时查询
+
+          ### 构建信息
+          - 构建编号: ${{ github.run_number }}
+          - 构建时间: ${{ github.event.head_commit.timestamp }}
+        files: |
+          ${{ steps.apk_info.outputs.apk_path }}
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
