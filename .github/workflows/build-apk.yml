@@ -1,0 +1,67 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app.py'
+      - 'main.py'
+      - 'static/**'
+      - 'buildozer.spec'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential git zip unzip \
+          openjdk-17-jdk-headless \
+          autoconf libtool pkg-config zlib1g-dev \
+          libncurses5-dev libncursesw5-dev libtinfo5 cmake \
+          libffi-dev libssl-dev \
+          ninja-build
+
+    - name: Install Buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer cython virtualenv
+
+    - name: Build APK
+      run: |
+        cd $GITHUB_WORKSPACE
+        buildozer android debug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pharmacy-android-apk
+        path: bin/*.apk
+        retention-days: 7
+
+    - name: Get APK info
+      run: |
+        APK_PATH=$(find bin -name "*.apk" | head -1)
+        if [ -n "$APK_PATH" ]; then
+          APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+          echo "APK 文件: $APK_PATH"
+          echo "APK 大小: $APK_SIZE"
+        else
+          echo "未找到 APK 文件"
+          find bin -type f 2>/dev/null || echo "bin 目录不存在"
+          ls -la bin/ 2>/dev/null || echo "bin 目录不存在"
+        fi
