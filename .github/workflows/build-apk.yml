@@ -12,10 +12,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
@@ -30,20 +30,20 @@ jobs:
           libffi-dev libssl-dev \
           ninja-build ccache
 
-    - name: Create libtinfo5 symlink (not available on Ubuntu 24.04)
+    - name: Create libtinfo5 symlink
       run: |
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
 
     - name: Cache Buildozer
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.buildozer
           ~/.gradle
-        key: buildozer-${{ runner.os }}-v1
+        key: buildozer-v2-${{ hashFiles('buildozer.spec') }}
         restore-keys: |
-          buildozer-${{ runner.os }}-
+          buildozer-v2-
 
     - name: Install Buildozer
       run: |
@@ -53,18 +53,29 @@ jobs:
     - name: Build APK
       run: |
         cd $GITHUB_WORKSPACE
-        buildozer android debug 2>&1 | tail -100
-        echo "Build exit code: $?"
+        set -o pipefail
+        buildozer android debug 2>&1 | tee build_output.log | tail -200
+        echo "=== Build completed ==="
 
     - name: List build output
       if: always()
       run: |
         echo "=== bin/ contents ==="
         ls -la bin/ 2>/dev/null || echo "bin/ does not exist"
-        find bin -name "*.apk" 2>/dev/null || echo "No APK found"
+        find . -name "*.apk" 2>/dev/null || echo "No APK found"
+        echo "=== Last 50 lines of build log ==="
+        tail -50 build_output.log 2>/dev/null || echo "No build log"
+
+    - name: Upload build log
+      if: always()
+      uses: actions/upload-artifact@v5
+      with:
+        name: build-log
+        path: build_output.log
+        retention-days: 7
 
     - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: success()
       with:
         name: pharmacy-android-apk
@@ -85,10 +96,11 @@ jobs:
           echo "APK found: $APK_NAME ($APK_SIZE)"
         else
           echo "No APK found"
+          exit 1
         fi
 
-    - name: Create GitHub Release and Upload APK
-      if: success() && steps.apk_info.outputs.apk_path != ''
+    - name: Create GitHub Release
+      if: success()
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.${{ github.run_number }}
@@ -110,7 +122,6 @@ jobs:
 
           ### 构建信息
           - 构建编号: ${{ github.run_number }}
-          - 构建时间: ${{ github.event.head_commit.timestamp }}
         files: |
           ${{ steps.apk_info.outputs.apk_path }}
         prerelease: false
