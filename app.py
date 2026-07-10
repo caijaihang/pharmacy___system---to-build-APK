@@ -12,8 +12,17 @@ from flask import Flask, request, jsonify, send_from_directory, render_template_
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import requests
-from bs4 import BeautifulSoup
-import pandas as pd
+
+# 条件导入：pandas/selenium在Android上不可用，使用try/except
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 
 # 日志配置
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -987,6 +996,10 @@ def batch_search():
     file = request.files['file']
     if file.filename == '':
         return jsonify({'success': False, 'message': '请选择文件'})
+
+    # 条件导入保护：pandas在Android等环境可能不可用
+    if pd is None:
+        return jsonify({'success': False, 'message': '服务器未安装pandas库，无法解析Excel文件，请联系管理员'})
 
     try:
         # 读取Excel文件 - 统一使用openpyxl引擎，避免xlrd版本问题
