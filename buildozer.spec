@@ -37,8 +37,9 @@ android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_
 android.debug_artifact = apk
 android.release_artifact = apk
 
-# 构建后端
-p4a.branch = stable
+# 构建后端（develop分支支持AAB）
+p4a.branch = develop
+p4a.commit = develop
 
 # 日志
 log_level = 2
