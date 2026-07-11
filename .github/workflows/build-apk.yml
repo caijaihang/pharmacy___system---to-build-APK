@@ -35,35 +35,24 @@ jobs:
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
 
-    - name: Cache Buildozer
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.buildozer
-          ~/.gradle
-        key: buildozer-v2-${{ hashFiles('buildozer.spec') }}
-        restore-keys: |
-          buildozer-v2-
-
     - name: Install Buildozer
       run: |
         pip install --upgrade pip
         pip install buildozer==1.6.0 cython==0.29.36 virtualenv
 
-    - name: Build APK
+    - name: Build APK (full log)
       run: |
         cd $GITHUB_WORKSPACE
-        set -o pipefail
-        buildozer android debug 2>&1 | tee build_output.log | tail -500
-        echo "=== Build completed ==="
+        buildozer android debug 2>&1 | tee build_output.log
+      continue-on-error: true
 
-    - name: Show full error on failure
-      if: failure()
+    - name: Grep errors from build log
+      if: always()
       run: |
-        echo "=== FULL BUILD LOG (last 1000 lines) ==="
-        tail -1000 build_output.log 2>/dev/null || echo "No build log"
-        echo "=== .buildozer error logs ==="
-        find .buildozer -name "*.log" -exec echo "--- {} ---" \; -exec tail -50 {} \; 2>/dev/null || echo "No error logs"
+        echo "========== ERROR LINES =========="
+        grep -i -n "error\|fail\|exception\|traceback\|cannot\|unable\|not found\|No such" build_output.log | tail -100 || echo "No error lines found"
+        echo "========== LAST 200 LINES =========="
+        tail -200 build_output.log
 
     - name: List build output
       if: always()
@@ -88,7 +77,7 @@ jobs:
         path: bin/*.apk
         retention-days: 30
 
-    - name: Get APK info
+    - name: Check APK exists
       if: success()
       id: apk_info
       run: |
