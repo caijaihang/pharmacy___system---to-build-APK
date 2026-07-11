@@ -18,7 +18,7 @@ jobs:
 
     - name: Free disk space
       run: |
-        sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/lib/android/sdk/ndk/27.3.13750724 /usr/local/lib/android/sdk/ndk/29.0.14206865
+        sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/lib/android/sdk/ndk
         sudo apt-get clean
         df -h /
 
@@ -27,7 +27,7 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Set up JDK
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
@@ -37,53 +37,67 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
-          build-essential git zip unzip \
+          build-essential git zip unzip ant \
           autoconf libtool pkg-config zlib1g-dev \
-          libncurses-dev cmake \
-          libffi-dev libssl-dev \
-          ninja-build ccache \
-          ant
+          libncurses-dev cmake libffi-dev libssl-dev \
+          ninja-build ccache
 
     - name: Create libtinfo symlinks
       run: |
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
 
-    - name: Cache Buildozer
+    - name: Cache p4a builds
       uses: actions/cache@v5
       with:
         path: |
-          ~/.buildozer
           ~/.local/share/python-for-android
-        key: p4a-v5-${{ hashFiles('buildozer.spec') }}
-        restore-keys: |
-          p4a-v5-
+          ~/.android
+        key: p4a-direct-v3
+        restore-keys: p4a-direct-
 
-    - name: Install Buildozer
+    - name: Install p4a and dependencies
       run: |
         pip install --upgrade pip setuptools wheel
-        pip install buildozer==1.2.0 cython==0.29.36 virtualenv
+        pip install cython==0.29.36 virtualenv
+        pip install https://github.com/kivy/python-for-android/archive/refs/heads/master.zip
 
-    - name: Build APK
+    - name: Build with p4a directly
       run: |
         cd $GITHUB_WORKSPACE
-        buildozer android debug 2>&1 | tee build_output.log
+        python -m pythonforandroid toolchain apk \
+          --private $PWD \
+          --package=org.pharmacy.pharmacy \
+          --name="药房比价" \
+          --version=1.0 \
+          --bootstrap=sdl2 \
+          --requirements=python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0 \
+          --arch=arm64-v8a \
+          --ndk-api=24 \
+          --android-api=33 \
+          --orientation=portrait \
+          --fullscreen \
+          --permission=INTERNET \
+          --permission=ACCESS_NETWORK_STATE \
+          --permission=WRITE_EXTERNAL_STORAGE \
+          --permission=READ_EXTERNAL_STORAGE \
+          --add-asset static/index.html \
+          2>&1 | tee build_output.log
 
     - name: Extract errors
       if: always()
       run: |
-        echo "========== ERROR SUMMARY =========="
-        grep -i -n "error\|failed\|command failed\|exception\|traceback" build_output.log | grep -v "DEBUG\|INFO\|warning\|deprecated\|DEP0040\|no matching\|Skipped\|_test_" | tail -80 || echo "No critical errors found"
+        echo "=== ERRORS ==="
+        grep -i "error\|fail\|traceback\|exception" build_output.log | grep -v "DEBUG\|INFO\|warning\|deprecated\|DeprecationWarning\|Node" | tail -50
         echo ""
-        echo "========== LAST 100 LINES =========="
-        tail -100 build_output.log
+        echo "=== LAST 40 LINES ==="
+        tail -40 build_output.log
 
-    - name: List output
+    - name: Find APK
       if: always()
       run: |
-        echo "=== bin/ ==="
-        ls -la bin/ 2>/dev/null || echo "bin/ not found"
-        find . -name "*.apk" 2>/dev/null || echo "No APK"
+        find . -name "*.apk" 2>/dev/null
+        ls -la bin/ 2>/dev/null || echo "no bin/"
 
     - name: Upload build log
       if: always()
@@ -99,11 +113,12 @@ jobs:
       with:
         name: pharmacy-apk
         path: bin/*.apk
+        if-no-files-found: ignore
         retention-days: 30
 
     - name: Release APK
-      if: success()
       uses: softprops/action-gh-release@v2
+      if: success()
       with:
         tag_name: v1.0.${{ github.run_number }}
         name: 药房比价系统 v1.0.${{ github.run_number }}
