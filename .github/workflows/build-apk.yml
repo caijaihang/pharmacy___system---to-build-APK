@@ -9,6 +9,8 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
@@ -60,7 +62,7 @@ jobs:
     - name: Install Buildozer
       run: |
         pip install --upgrade pip setuptools wheel
-        pip install buildozer==1.4.0 cython==0.29.36 virtualenv
+        pip install buildozer==1.2.0 cython==0.29.36 virtualenv
 
     - name: Build APK
       run: |
