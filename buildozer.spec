@@ -27,17 +27,13 @@ android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
 
-# 仅arm64架构（减少编译时间）
-android.archs = arm64-v8a
+# 架构
+android.arch = arm64-v8a
 
 # 权限
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
-# 强制APK输出
-android.debug_artifact = apk
-android.release_artifact = apk
-
-# p4a配置（使用1.5.0兼容的stable分支）
+# p4a配置
 p4a.branch = stable
 
 # 日志
