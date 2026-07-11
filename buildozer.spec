@@ -14,8 +14,8 @@ source.exclude_patterns = hook-runtime.py,setup.bat,setup.sh,*.pyc,launcher.py,u
 # 版本
 version = 1.0.0
 
-# Python 依赖
-requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,flask-cors==4.0.0,requests==2.31.0,beautifulsoup4==4.12.2,lxml,openpyxl==3.1.2,Werkzeug==2.3.7,python-dateutil==2.8.2
+# Python 依赖（移除lxml C扩展，openpyxl为纯Python可编译）
+requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,flask-cors==4.0.0,requests==2.31.0,beautifulsoup4==4.12.2,openpyxl==3.1.2,Werkzeug==2.3.7,python-dateutil==2.8.2
 
 # Android 配置
 orientation = portrait
