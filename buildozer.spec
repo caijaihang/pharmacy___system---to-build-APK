@@ -14,8 +14,8 @@ source.exclude_patterns = hook-runtime.py,setup.bat,setup.sh,*.pyc,launcher.py,u
 # 版本
 version = 1.0.0
 
-# Python 依赖（移除lxml C扩展，openpyxl为纯Python可编译）
-requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,flask-cors==4.0.0,requests==2.31.0,beautifulsoup4==4.12.2,openpyxl==3.1.2,Werkzeug==2.3.7,python-dateutil==2.8.2
+# Python 依赖（最小化：仅保留核心包，其余条件导入）
+requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0,Werkzeug==2.3.7
 
 # Android 配置
 orientation = portrait
@@ -27,19 +27,18 @@ android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
 
-# 架构（使用 android.archs 复数形式）
-android.archs = arm64-v8a, armeabi-v7a
+# 架构（仅arm64减少编译时间）
+android.archs = arm64-v8a
 
 # 权限
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
-# 强制构建 APK（不构建 AAB）
+# 强制构建 APK
 android.debug_artifact = apk
 android.release_artifact = apk
 
-# 构建后端（develop分支支持AAB）
+# 构建后端
 p4a.branch = develop
-p4a.commit = develop
 
 # 日志
 log_level = 2
