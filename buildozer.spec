@@ -7,14 +7,14 @@ package.domain = org.pharmacy
 
 # 源码配置
 source.dir = .
-source.include_exts = py,png,jpg,jpeg,gif,ico,html,js,css,db,txt,woff,woff2,ttf,eot,svg,json
+source.include_exts = py,png,jpg,jpeg,gif,ico,html,js,css,db,txt,json
 source.exclude_dirs = .github,exports,__pycache__,.git,build,dist,bin
-source.exclude_patterns = hook-runtime.py,setup.bat,setup.sh,*.pyc,launcher.py,update_*.py,trigger_build.py,check_status.py,get_logs.py,upload_binary.py,cancel_queued.py,create_repo.py,pharmacy.db
+source.exclude_patterns = hook-runtime.py,setup.bat,setup.sh,*.pyc,launcher.py,update_*.py,trigger_build.py,check_status.py,get_logs.py,upload_binary.py,cancel_queued.py,create_repo.py,pharmacy.db,default.exe
 
 # 版本
 version = 1.0.0
 
-# Python 依赖（最小化：仅保留核心包，其余条件导入）
+# Python 依赖（最小化核心包）
 requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0,Werkzeug==2.3.7
 
 # Android 配置
@@ -27,18 +27,18 @@ android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
 
-# 架构（仅arm64减少编译时间）
+# 仅arm64架构（减少编译时间）
 android.archs = arm64-v8a
 
 # 权限
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
-# 强制构建 APK
+# 强制APK输出
 android.debug_artifact = apk
 android.release_artifact = apk
 
-# 构建后端
-p4a.branch = develop
+# p4a配置（使用1.5.0兼容的stable分支）
+p4a.branch = stable
 
 # 日志
 log_level = 2
