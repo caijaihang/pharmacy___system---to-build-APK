@@ -14,29 +14,31 @@ source.exclude_patterns = hook-runtime.py,setup.bat,setup.sh,*.pyc,launcher.py,u
 # 版本
 version = 1.0.0
 
-# Python 依赖（仅保留Android可编译的纯Python/C扩展包）
+# Python 依赖
 requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,flask-cors==4.0.0,requests==2.31.0,beautifulsoup4==4.12.2,lxml,openpyxl==3.1.2,Werkzeug==2.3.7,python-dateutil==2.8.2
 
 # Android 配置
 orientation = portrait
 fullscreen = 1
 
-# SDK/NDK 版本
+# SDK/NDK
 android.api = 33
 android.minapi = 24
 android.ndk = 25b
-android.sdk = 33
 android.accept_sdk_license = True
+
+# 架构（使用 android.archs 复数形式）
+android.archs = arm64-v8a, armeabi-v7a
 
 # 权限
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
+# 强制构建 APK（不构建 AAB）
+android.debug_artifact = apk
+android.release_artifact = apk
+
 # 构建后端
 p4a.branch = stable
-
-# 强制构建 APK（不构建 AAB）
-android.arch = arm64-v8a
-android.binary_apk = True
 
 # 日志
 log_level = 2
