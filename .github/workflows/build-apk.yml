@@ -54,7 +54,7 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE
         set -o pipefail
-        buildozer android apk debug 2>&1 | tee build_output.log | tail -200
+        buildozer android debug 2>&1 | tee build_output.log | tail -200
         echo "=== Build completed ==="
 
     - name: List build output
