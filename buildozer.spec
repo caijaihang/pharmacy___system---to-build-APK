@@ -21,25 +21,21 @@ requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0
 orientation = portrait
 fullscreen = 1
 
-# SDK/NDK
-android.api = 33
-android.minapi = 24
-android.ndk = 25b
-android.accept_sdk_license = True
+# 不设置 android.api / android.ndk / android.sdk（Docker镜像已预装）
 
 # 架构
-android.arch = arm64-v8a
+android.archs = arm64-v8a
 
 # 权限
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
 # p4a配置
-p4a.branch = stable
+p4a.branch = develop
 
 # 日志
 log_level = 2
-warn_on_root = 1
+warn_on_root = 0
 
 [buildozer]
 log_level = 2
-warn_on_root = 1
+warn_on_root = 0
