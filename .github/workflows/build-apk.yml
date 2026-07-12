@@ -16,9 +16,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Free disk space
+    - name: Free disk space (safe)
       run: |
-        sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/lib/android/sdk/ndk
+        sudo rm -rf /usr/share/dotnet /usr/share/swift
         sudo apt-get clean
         df -h /
 
@@ -47,14 +47,26 @@ jobs:
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
 
+    - name: Verify NDK toolchain
+      run: |
+        echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+        echo "ANDROID_HOME=$ANDROID_HOME"
+        ls -la $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/ 2>/dev/null || echo "No llvm prebuilt"
+        # GitHub runner的NDK可能没有linux-x86_64，检查
+        if [ -d "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" ]; then
+          echo "NDK clang: $(ls $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/clang 2>/dev/null && echo EXISTS || echo MISSING)"
+        else
+          echo "NDK linux-x86_64 not found, checking available..."
+          ls $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/ 2>/dev/null
+        fi
+
     - name: Cache p4a builds
       uses: actions/cache@v5
       with:
         path: |
           ~/.local/share/python-for-android
-          ~/.android
-        key: p4a-final-v1
-        restore-keys: p4a-final-
+        key: p4a-ndk27-v1
+        restore-keys: p4a-ndk27-
 
     - name: Install p4a and dependencies
       run: |
@@ -63,8 +75,36 @@ jobs:
         pip install python-for-android
 
     - name: Build APK with p4a
+      env:
+        ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.3.13750724
+        ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
         cd $GITHUB_WORKSPACE
+
+        # 确保NDK有正确的prebuilt目录
+        NDK_PREBUILT="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt"
+        if [ ! -d "$NDK_PREBUILT/linux-x86_64" ]; then
+          echo "Creating linux-x86_64 symlink..."
+          # GitHub runner NDK might only have linux-x86_64 or be at different path
+          ls "$NDK_PREBUILT/" 2>/dev/null
+          # 尝试找到实际的prebuilt目录
+          ACTUAL=$(ls "$NDK_PREBUILT/" 2>/dev/null | head -1)
+          if [ -n "$ACTUAL" ]; then
+            sudo ln -sf "$NDK_PREBUILT/$ACTUAL" "$NDK_PREBUILT/linux-x86_64"
+            echo "Symlinked $ACTUAL -> linux-x86_64"
+          fi
+        fi
+
+        # 验证clang存在
+        CLANG="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+        if [ ! -f "$CLANG" ]; then
+          echo "ERROR: clang not found at $CLANG"
+          echo "NDK contents:"
+          find "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt" -maxdepth 3 -type f -name "clang" 2>/dev/null || echo "No clang found"
+          exit 1
+        fi
+        echo "clang found: $CLANG"
+
         p4a apk \
           --private $PWD \
           --package=org.pharmacy.pharmacy \
@@ -88,7 +128,7 @@ jobs:
       if: always()
       run: |
         echo "=== ERRORS ==="
-        grep -iE "error|fail|traceback|exception|command failed" build_output.log | grep -v "DEBUG\|INFO\|warning\|deprecated\|DeprecationWarning\|Node\|prerequisites" | tail -50
+        grep -iE "error|fail|traceback|exception|command failed" build_output.log | grep -v "DEBUG\|INFO\|warning\|deprecated\|DeprecationWarning\|Node\|prerequisites\|stty" | tail -50
         echo ""
         echo "=== LAST 50 LINES ==="
         tail -50 build_output.log
@@ -96,9 +136,7 @@ jobs:
     - name: Find APK
       if: always()
       run: |
-        echo "=== Searching for APK ==="
         find . -name "*.apk" -ls 2>/dev/null || echo "No APK found"
-        ls -la bin/ 2>/dev/null || echo "no bin/"
 
     - name: Upload build log
       if: always()
