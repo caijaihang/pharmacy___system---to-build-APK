@@ -53,8 +53,8 @@ jobs:
         path: |
           ~/.local/share/python-for-android
           ~/.android
-        key: p4a-direct-v3
-        restore-keys: p4a-direct-
+        key: p4a-final-v1
+        restore-keys: p4a-final-
 
     - name: Install p4a and dependencies
       run: |
@@ -62,7 +62,7 @@ jobs:
         pip install cython==0.29.36 virtualenv
         pip install python-for-android
 
-    - name: Build with p4a directly
+    - name: Build APK with p4a
       run: |
         cd $GITHUB_WORKSPACE
         p4a apk \
@@ -74,7 +74,7 @@ jobs:
           --requirements=python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0 \
           --arch=arm64-v8a \
           --ndk-api=24 \
-          --android-api=33 \
+          --android-api=34 \
           --orientation=portrait \
           --fullscreen \
           --permission=INTERNET \
@@ -88,15 +88,16 @@ jobs:
       if: always()
       run: |
         echo "=== ERRORS ==="
-        grep -i "error\|fail\|traceback\|exception" build_output.log | grep -v "DEBUG\|INFO\|warning\|deprecated\|DeprecationWarning\|Node" | tail -50
+        grep -iE "error|fail|traceback|exception|command failed" build_output.log | grep -v "DEBUG\|INFO\|warning\|deprecated\|DeprecationWarning\|Node\|prerequisites" | tail -50
         echo ""
-        echo "=== LAST 40 LINES ==="
-        tail -40 build_output.log
+        echo "=== LAST 50 LINES ==="
+        tail -50 build_output.log
 
     - name: Find APK
       if: always()
       run: |
-        find . -name "*.apk" 2>/dev/null
+        echo "=== Searching for APK ==="
+        find . -name "*.apk" -ls 2>/dev/null || echo "No APK found"
         ls -la bin/ 2>/dev/null || echo "no bin/"
 
     - name: Upload build log
