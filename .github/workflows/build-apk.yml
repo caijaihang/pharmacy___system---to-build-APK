@@ -60,12 +60,12 @@ jobs:
       run: |
         pip install --upgrade pip setuptools wheel
         pip install cython==0.29.36 virtualenv
-        pip install https://github.com/kivy/python-for-android/archive/refs/heads/master.zip
+        pip install python-for-android
 
     - name: Build with p4a directly
       run: |
         cd $GITHUB_WORKSPACE
-        python -m pythonforandroid toolchain apk \
+        p4a apk \
           --private $PWD \
           --package=org.pharmacy.pharmacy \
           --name="药房比价" \
