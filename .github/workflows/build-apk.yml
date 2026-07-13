@@ -16,24 +16,28 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
+    - name: Inspect Docker image
+      run: |
+        docker pull kivy/buildozer:latest
+        docker inspect kivy/buildozer:latest --format='{{json .Config}}' | python3 -m json.tool
+
     - name: Build APK with Kivy Docker image
       run: |
         mkdir -p bin
-        # 启动构建容器（不覆盖 .buildozer，让镜像内的工具正常工作）
+        # 用sh -c包装buildozer命令
         docker run --name build_container \
-          --entrypoint buildozer \
           -v "$PWD":/home/user/project \
           -w /home/user/project \
           kivy/buildozer:latest \
-          android debug \
+          /bin/sh -c "buildozer android debug" \
           2>&1 | tee build_output.log
 
     - name: Copy APK from container
-      if: success()
+      if: always()
       run: |
-        docker cp build_container:/home/user/project/bin/. ./bin/ || echo "Copy failed"
-        ls -la bin/ 2>/dev/null || echo "no bin/"
-        docker rm build_container
+        docker cp build_container:/home/user/project/bin/. ./bin/ 2>/dev/null || echo "No bin in container"
+        ls -la bin/ 2>/dev/null || echo "no local bin/"
+        docker rm build_container 2>/dev/null || true
 
     - name: Extract errors
       if: always()
