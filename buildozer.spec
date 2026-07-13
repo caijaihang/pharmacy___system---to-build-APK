@@ -14,14 +14,12 @@ source.exclude_patterns = hook-runtime.py,setup.bat,setup.sh,*.pyc,launcher.py,u
 # 版本
 version = 1.0.0
 
-# Python 依赖（最小化核心包）
-requirements = python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0,Werkzeug==2.3.7
+# Python 依赖（webview bootstrap：无需Kivy/SDL2）
+requirements = python3,flask,requests
 
 # Android 配置
 orientation = portrait
 fullscreen = 1
-
-# 不设置 android.api / android.ndk / android.sdk（Docker镜像已预装）
 
 # 架构
 android.archs = arm64-v8a
