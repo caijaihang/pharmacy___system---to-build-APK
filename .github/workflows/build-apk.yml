@@ -26,11 +26,13 @@ jobs:
 
     - name: Build APK with Kivy Docker image
       run: |
+        mkdir -p .buildozer
         docker run --rm \
           -v "$PWD":/home/user/project \
+          -v "$PWD/.buildozer":/home/user/.buildozer \
           -w /home/user/project \
           kivy/buildozer:latest \
-          buildozer android debug \
+          bash -c "buildozer android debug" \
           2>&1 | tee build_output.log
 
     - name: Extract errors
