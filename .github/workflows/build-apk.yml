@@ -16,20 +16,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Inspect Docker image
-      run: |
-        docker pull kivy/buildozer:latest
-        docker inspect kivy/buildozer:latest --format='{{json .Config}}' | python3 -m json.tool
-
     - name: Build APK with Kivy Docker image
       run: |
         mkdir -p bin
-        # 用sh -c包装buildozer命令
+        # 直接传 android debug（镜像wrapper脚本期望平台作为第一个参数）
         docker run --name build_container \
           -v "$PWD":/home/user/project \
           -w /home/user/project \
           kivy/buildozer:latest \
-          /bin/sh -c "buildozer android debug" \
+          android debug \
           2>&1 | tee build_output.log
 
     - name: Copy APK from container
