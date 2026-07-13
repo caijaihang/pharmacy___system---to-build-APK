@@ -28,11 +28,12 @@ jobs:
       run: |
         mkdir -p .buildozer
         docker run --rm \
+          --entrypoint buildozer \
           -v "$PWD":/home/user/project \
           -v "$PWD/.buildozer":/home/user/.buildozer \
           -w /home/user/project \
           kivy/buildozer:latest \
-          bash -c "buildozer android debug" \
+          android debug \
           2>&1 | tee build_output.log
 
     - name: Extract errors
