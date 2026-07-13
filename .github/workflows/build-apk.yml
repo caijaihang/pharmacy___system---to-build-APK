@@ -16,26 +16,46 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Build APK with Kivy Docker image
+    - name: Pull radiant_p4a Docker image
+      run: docker pull dunderlab/radiant_p4a:latest
+
+    - name: Build APK
       run: |
-        mkdir -p bin sdk_licenses
-        # 预接受Android SDK license（挂载到SDK目录的licenses子目录，不覆盖.buildozer）
-        echo -n "24333f8a63b6825ea9c5514f83c2829b004d1fee" > sdk_licenses/android-sdk-license
-        echo -n "84831b9409646a918e30573bab4c9c9f46a98b00" > sdk_licenses/android-sdk-preview-license
-        docker run --name build_container \
-          -v "$PWD":/home/user/project \
-          -v "$PWD/sdk_licenses":/home/user/.buildozer/android/platform/android-sdk/licenses \
-          -w /home/user/project \
-          kivy/buildozer:latest \
-          android debug \
+        docker create -i --name pharmacy_build \
+          --mount type=bind,source="$(pwd)",target=/app/env \
+          dunderlab/radiant_p4a:latest
+
+        docker start pharmacy_build
+
+        # 在容器内执行p4a构建APK
+        docker exec pharmacy_build p4a apk \
+          --private /app/env \
+          --package=org.pharmacy.pharmacy \
+          --name="药房比价" \
+          --version=1.0 \
+          --bootstrap=sdl2 \
+          --requirements=python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0 \
+          --arch=arm64-v8a \
+          --ndk-api=24 \
+          --android-api=35 \
+          --orientation=portrait \
+          --fullscreen \
+          --permission=INTERNET \
+          --permission=ACCESS_NETWORK_STATE \
+          --permission=WRITE_EXTERNAL_STORAGE \
+          --permission=READ_EXTERNAL_STORAGE \
           2>&1 | tee build_output.log
+
+        docker stop pharmacy_build
 
     - name: Copy APK from container
       if: always()
       run: |
-        docker cp build_container:/home/user/project/bin/. ./bin/ 2>/dev/null || echo "No bin in container"
+        docker cp pharmacy_build:/app/env/bin/. ./bin/ 2>/dev/null || echo "No bin/"
+        docker cp pharmacy_build:. 2>/dev/null | head -5 || true
         ls -la bin/ 2>/dev/null || echo "no local bin/"
-        docker rm build_container 2>/dev/null || true
+        find . -name "*.apk" -ls 2>/dev/null || echo "No APK found"
+        docker rm pharmacy_build 2>/dev/null || true
 
     - name: Extract errors
       if: always()
@@ -45,12 +65,6 @@ jobs:
         echo ""
         echo "=== LAST 50 LINES ==="
         tail -50 build_output.log
-
-    - name: Find APK
-      if: always()
-      run: |
-        echo "=== Searching for APK ==="
-        find . -name "*.apk" -ls 2>/dev/null || echo "No APK found"
 
     - name: Upload build log
       if: always()
