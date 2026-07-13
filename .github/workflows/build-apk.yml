@@ -27,17 +27,14 @@ jobs:
 
         docker start pharmacy_build
 
-        # 安装git（radiant_p4a镜像缺少）
-        docker exec pharmacy_build bash -c "which git || (pacman -Syy --noconfirm && pacman -S --noconfirm --needed git)" 2>&1 | tail -10
-
-        # 在容器内执行p4a构建APK
+        # webview bootstrap：不需要Kivy/SDL2，避免ALooper_pollAll错误
         docker exec pharmacy_build p4a apk \
           --private /app/env \
           --package=org.pharmacy.pharmacy \
           --name="药房比价" \
           --version=1.0 \
-          --bootstrap=sdl2 \
-          --requirements=python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0 \
+          --bootstrap=webview \
+          --requirements=python3,flask,requests \
           --arch=arm64-v8a \
           --ndk-api=21 \
           --android-api=35 \
@@ -55,8 +52,6 @@ jobs:
       if: always()
       run: |
         docker cp pharmacy_build:/app/env/bin/. ./bin/ 2>/dev/null || echo "No bin/"
-        docker cp pharmacy_build:. 2>/dev/null | head -5 || true
-        ls -la bin/ 2>/dev/null || echo "no local bin/"
         find . -name "*.apk" -ls 2>/dev/null || echo "No APK found"
         docker rm pharmacy_build 2>/dev/null || true
 
