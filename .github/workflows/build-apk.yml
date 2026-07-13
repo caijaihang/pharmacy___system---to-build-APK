@@ -20,17 +20,22 @@ jobs:
       uses: actions/cache@v5
       with:
         path: |
-          .buildozer
-        key: docker-buildozer-v1
+          .buildozer_cache
+        key: docker-buildozer-v2
         restore-keys: docker-buildozer-
 
     - name: Build APK with Kivy Docker image
       run: |
-        mkdir -p .buildozer
+        mkdir -p .buildozer_cache
+        # 预接受Android SDK license
+        mkdir -p .buildozer_cache/android/platform/android-sdk/licenses
+        echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > .buildozer_cache/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9409646a918e30573bab4c9c9f46a98b00" > .buildozer_cache/android/platform/android-sdk/licenses/android-sdk-preview-license
+        
         docker run --rm \
           --entrypoint buildozer \
           -v "$PWD":/home/user/project \
-          -v "$PWD/.buildozer":/home/user/.buildozer \
+          -v "$PWD/.buildozer_cache":/root/.buildozer \
           -w /home/user/project \
           kivy/buildozer:latest \
           android debug \
