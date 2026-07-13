@@ -27,8 +27,8 @@ jobs:
 
         docker start pharmacy_build
 
-        # 安装git（radiant_p4a镜像缺少git）
-        docker exec pharmacy_build pacman -Sy --noconfirm git 2>&1 | tail -5
+        # 安装git和libuuid-dev（radiant_p4a镜像缺少）
+        docker exec pharmacy_build pacman -Sy --noconfirm git util-linux-libs 2>&1 | tail -5
 
         # 在容器内执行p4a构建APK
         docker exec pharmacy_build p4a apk \
@@ -39,7 +39,7 @@ jobs:
           --bootstrap=sdl2 \
           --requirements=python3,kivy==2.3.0,android,pyjnius,flask==2.3.3,requests==2.31.0 \
           --arch=arm64-v8a \
-          --ndk-api=24 \
+          --ndk-api=21 \
           --android-api=35 \
           --orientation=portrait \
           --fullscreen \
