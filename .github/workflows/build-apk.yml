@@ -18,10 +18,13 @@ jobs:
 
     - name: Build APK with Kivy Docker image
       run: |
-        mkdir -p bin
-        # 直接传 android debug（镜像wrapper脚本期望平台作为第一个参数）
+        mkdir -p bin sdk_licenses
+        # 预接受Android SDK license（挂载到SDK目录的licenses子目录，不覆盖.buildozer）
+        echo -n "24333f8a63b6825ea9c5514f83c2829b004d1fee" > sdk_licenses/android-sdk-license
+        echo -n "84831b9409646a918e30573bab4c9c9f46a98b00" > sdk_licenses/android-sdk-preview-license
         docker run --name build_container \
           -v "$PWD":/home/user/project \
+          -v "$PWD/sdk_licenses":/home/user/.buildozer/android/platform/android-sdk/licenses \
           -w /home/user/project \
           kivy/buildozer:latest \
           android debug \
