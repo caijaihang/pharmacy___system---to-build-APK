@@ -21,10 +21,11 @@ jobs:
         mkdir -p bin
         # 启动构建容器（不覆盖 .buildozer，让镜像内的工具正常工作）
         docker run --name build_container \
+          --entrypoint buildozer \
           -v "$PWD":/home/user/project \
           -w /home/user/project \
           kivy/buildozer:latest \
-          buildozer android debug \
+          android debug \
           2>&1 | tee build_output.log
 
     - name: Copy APK from container
