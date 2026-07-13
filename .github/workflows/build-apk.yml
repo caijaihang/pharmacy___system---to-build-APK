@@ -27,8 +27,8 @@ jobs:
 
         docker start pharmacy_build
 
-        # 安装git和libuuid-dev（radiant_p4a镜像缺少）
-        docker exec pharmacy_build pacman -Sy --noconfirm git util-linux-libs 2>&1 | tail -5
+        # 安装git（radiant_p4a镜像缺少）
+        docker exec pharmacy_build bash -c "which git || (pacman -Syy --noconfirm && pacman -S --noconfirm --needed git)" 2>&1 | tail -10
 
         # 在容器内执行p4a构建APK
         docker exec pharmacy_build p4a apk \
